@@ -1,11 +1,13 @@
 import pandas as pd
 import mlflow
 import mlflow.sklearn
+
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.linear_model import LogisticRegression
-import joblib
+
+mlflow.sklearn.autolog()
 
 data = pd.read_csv("preprocessing/telco-customer-churn_preprocessing.csv")
 
@@ -20,11 +22,9 @@ scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
 
-mlflow.sklearn.autolog()
-
 with mlflow.start_run():
 
-    model = LogisticRegression()
+    model = LogisticRegression(max_iter=1000)
 
     model.fit(X_train, y_train)
 
@@ -35,11 +35,3 @@ with mlflow.start_run():
     print("Accuracy:", accuracy)
     print("\nClassification Report:\n")
     print(classification_report(y_test, y_pred))
-
-    mlflow.log_metric("accuracy", accuracy)
-
-    joblib.dump(model, "churn_model.pkl")
-
-    mlflow.log_artifact("churn_model.pkl")
-
-print("Training selesai dan tercatat di MLflow")
