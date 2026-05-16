@@ -6,7 +6,6 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.linear_model import LogisticRegression
-import joblib
 
 data = pd.read_csv("preprocessing/telco-customer-churn_preprocessing.csv")
 
@@ -23,25 +22,23 @@ X_test = scaler.transform(X_test)
 
 param_grid = {
     "C": [0.01, 0.1, 1, 10],
-    "solver": ["liblinear", "lbfgs"],
-    "max_iter": [100, 200]
+    "solver": ["lbfgs", "liblinear"]
 }
-
-model = LogisticRegression()
-
-grid_search = GridSearchCV(
-    estimator=model,
-    param_grid=param_grid,
-    cv=5,
-    scoring="accuracy",
-    n_jobs=-1
-)
 
 with mlflow.start_run():
 
-    grid_search.fit(X_train, y_train)
+    model = LogisticRegression(max_iter=1000)
 
-    best_model = grid_search.best_estimator_
+    grid = GridSearchCV(
+        model,
+        param_grid,
+        cv=3,
+        scoring="accuracy"
+    )
+
+    grid.fit(X_train, y_train)
+
+    best_model = grid.best_estimator_
 
     y_pred = best_model.predict(X_test)
 
@@ -50,20 +47,14 @@ with mlflow.start_run():
     recall = recall_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred)
 
-    mlflow.log_param("C", grid_search.best_params_["C"])
-    mlflow.log_param("solver", grid_search.best_params_["solver"])
-    mlflow.log_param("max_iter", grid_search.best_params_["max_iter"])
+    mlflow.log_params(grid.best_params_)
 
     mlflow.log_metric("accuracy", accuracy)
     mlflow.log_metric("precision", precision)
     mlflow.log_metric("recall", recall)
     mlflow.log_metric("f1_score", f1)
 
-    joblib.dump(best_model, "best_model.pkl")
+    mlflow.sklearn.log_model(best_model, "model")
 
-    mlflow.log_artifact("best_model.pkl")
-
-    print("Best Parameters:", grid_search.best_params_)
+    print("Best Parameters:", grid.best_params_)
     print("Accuracy:", accuracy)
-
-print("Training dengan tuning selesai")
